@@ -2,7 +2,7 @@ import ccxt
 import os
 
 def market_buy(ticker, amount):
-    return buy(ticker, amount, "market", 10)
+    return buy(ticker, amount, "market", None)
 def buy(ticker, amount, trade_type, price):
     tmap = {
         "ETH_JPY": "ETH/JPY",
