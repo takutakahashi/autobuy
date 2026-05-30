@@ -1,0 +1,31 @@
+{{- range .Values.jobs }}
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ printf "autobuy-%s" .ticker | lower | replace "_" "-" }}
+  namespace: {{ $.Release.Namespace }}
+spec:
+  schedule: {{ $.Values.schedule | quote }}
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: autobuy
+              image: {{ $.Values.image.repository }}:{{ $.Values.image.tag }}
+              imagePullPolicy: {{ $.Values.image.pullPolicy }}
+              command: ["python", "app.py", "--ticker", {{ .ticker | quote }}, "--jpy", {{ .jpy | quote }}]
+              env:
+                - name: BITBANK_API_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ if $.Values.existingSecret }}{{ $.Values.existingSecret }}{{ else }}autobuy-secret{{ end }}
+                      key: BITBANK_API_KEY
+                - name: BITBANK_API_SECRET
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ if $.Values.existingSecret }}{{ $.Values.existingSecret }}{{ else }}autobuy-secret{{ end }}
+                      key: BITBANK_API_SECRET
+{{- end }}

@@ -1,35 +1,48 @@
 on:
   push:
-    # Sequence of patterns matched against refs/tags
     tags:
-    - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10
+    - 'v*'
 
-name: Upload Release Asset
+name: Build and Release
+
+permissions:
+  contents: read
+  packages: write
 
 jobs:
   build:
-    name: Upload Release Asset
+    name: Build and Release
     runs-on: ubuntu-latest
     env:
       IMAGE_NAME: takutakahashi/autobuy
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
-      - name: Branch name
-        id: branch_name
-        run: |
-          echo ::set-output name=SOURCE_NAME::${GITHUB_REF#refs/*/}
-          echo ::set-output name=SOURCE_BRANCH::${GITHUB_REF#refs/heads/}
-          echo ::set-output name=SOURCE_TAG::${GITHUB_REF#refs/tags/}
-          echo ::set-output name=IMAGE_NAME::${IMAGE_NAME}
+        uses: actions/checkout@v4
+
+      - name: Get tag
+        id: tag
+        run: echo "SOURCE_TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
       - name: Login to ghcr.io
-        uses: docker/login-action@v1
+        uses: docker/login-action@v3
         with:
           registry: ghcr.io
-          username: takutakahashi
+          username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: 'Build:image'
-        uses: docker/build-push-action@v2
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
         with:
           push: true
-          tags: ghcr.io/${{ steps.branch_name.outputs.IMAGE_NAME }}:${{ steps.branch_name.outputs.SOURCE_TAG }}
+          tags: ghcr.io/${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.SOURCE_TAG }}
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+
+      - name: Update chart appVersion
+        run: sed -i "s/appVersion:.*/appVersion: \"${{ steps.tag.outputs.SOURCE_TAG }}\"/" charts/autobuy/Chart.yaml
+
+      - name: Package and push Helm chart
+        run: |
+          helm package charts/autobuy
+          helm push autobuy-*.tgz oci://ghcr.io/takutakahashi/charts

@@ -1,0 +1,18 @@
+image:
+  repository: ghcr.io/takutakahashi/autobuy
+  tag: v0.2.0
+  pullPolicy: IfNotPresent
+
+schedule: "0 9 * * *"
+
+jobs:
+  - ticker: BTC_JPY
+    jpy: "1000"
+  - ticker: ETH_JPY
+    jpy: "1000"
+
+bitbank:
+  apiKey: ""
+  apiSecret: ""
+
+existingSecret: ""
