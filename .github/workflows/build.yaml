@@ -40,7 +40,8 @@ jobs:
         uses: azure/setup-helm@v4
 
       - name: Update chart appVersion
-        run: sed -i "s/appVersion:.*/appVersion: \"${{ steps.tag.outputs.SOURCE_TAG }}\"/" charts/autobuy/Chart.yaml
+        run: |
+          sed -i 's/appVersion:.*/appVersion: "${{ steps.tag.outputs.SOURCE_TAG }}"/' charts/autobuy/Chart.yaml
 
       - name: Package and push Helm chart
         run: |
